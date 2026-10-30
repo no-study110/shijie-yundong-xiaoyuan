@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>运动世界校园 · 网页控制台</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --line:#e5e8ec;
+    --text:#24292f; --muted:#6b7280;
+    --brand:#2f6fed; --brand-dark:#2456c4;
+    --ok:#16a34a; --warn:#d97706; --err:#dc2626;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px;}
+  .wrap{max-width:860px;margin:0 auto;}
+  h1{font-size:20px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;}
+  .card h2{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input,select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;outline:none;background:#fff}
+  input:focus{border-color:var(--brand)}
+  button{padding:8px 16px;border:none;border-radius:8px;font-size:14px;cursor:pointer;background:var(--brand);color:#fff;transition:.15s}
+  button:hover{background:var(--brand-dark)}
+  button:disabled{background:#a8b8d8;cursor:not-allowed}
+  button.ghost{background:#fff;color:var(--text);border:1px solid var(--line)}
+  button.ghost:hover{border-color:var(--brand);color:var(--brand)}
+  button.danger{background:#fff;color:var(--err);border:1px solid #f3c1c1}
+  button.danger:hover{background:#fdf0f0}
+  .badge{font-size:12px;padding:2px 10px;border-radius:999px;background:#eef2ff;color:var(--brand)}
+  .badge.ok{background:#e8f7ee;color:var(--ok)}
+  .badge.off{background:#f3f4f6;color:var(--muted)}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .hint code{font-family:Consolas,monospace;background:#eef2f7;border-radius:4px;padding:1px 5px;color:var(--text)}
+  .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+  .kv div{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}
+  .kv b{display:block;color:var(--muted);font-size:11px;font-weight:normal;margin-bottom:2px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+  th{color:var(--muted);font-weight:normal}
+  #log{background:#1e2430;color:#c9d4e3;font-family:Consolas,monospace;font-size:12px;
+       border-radius:8px;padding:12px;height:260px;overflow-y:auto;white-space:pre-wrap;line-height:1.7}
+  .err{color:var(--err)} .ok{color:var(--ok)} .dim{color:var(--muted)}
+  .speed{font-size:13px;color:var(--brand);font-weight:bold}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid #fff;border-top-color:transparent;
+        border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  /* 页面内提示与确认弹窗（不依赖浏览器原生 alert/confirm，避免被弹窗拦截后“没反应”） */
+  #toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#24292f;color:#fff;
+         padding:10px 18px;border-radius:8px;font-size:14px;z-index:99;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+  #toast.show{opacity:1}
+  #modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:100}
+  #modal.show{display:flex}
+  .modal-box{background:#fff;border-radius:10px;padding:20px;max-width:360px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+  .modal-box p{font-size:14px;margin:0 0 16px;line-height:1.6}
+  .modal-box .btns{display:flex;gap:10px;justify-content:flex-end}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏃 运动世界校园 · 网页控制台</h1>
+  <div class="sub">7.3.92 纯协议套件 · 本地服务 127.0.0.1:9999 · 仅供学习研究</div>
+
+  <!-- 状态 + 登录 -->
+  <div class="card">
+    <h2>账号 <span id="loginBadge" class="badge off">检测中…</span></h2>
+    <div class="row">
+      <input id="username" placeholder="手机号" style="width:140px">
+      <input id="password" type="password" placeholder="密码" style="width:140px">
+      <input id="deviceId" placeholder="设备指纹 DeviceId" style="width:220px">
+      <button class="ghost" id="btnGenDevice" onclick="genDeviceId()" title="生成一个随机 32 位指纹填入输入框；登录成功后才真正生效">随机生成</button>
+      <button id="btnLogin" onclick="doLogin()">登录</button>
+      <button class="danger" onclick="doLogout()">退出登录</button>
+    </div>
+    <div class="hint">已登录时无需重复登录；换账号请先退出登录。10121 报错时填手机抓包里的 DeviceId。</div>
+    <div class="hint" id="deviceHint">当前生效：读取中…</div>
+  </div>
+
+  <!-- 查询 -->
+  <div class="card">
+    <h2>查询</h2>
+    <div class="row">
+      <button class="ghost" onclick="action('profile')">个人档案</button>
+      <button class="ghost" onclick="action('rules')">跑步规则</button>
+      <button class="ghost" onclick="action('semester')">学期进度</button>
+      <button class="ghost" onclick="action('checkpoints')">官方点位</button>
+      <button class="ghost" onclick="action('history')">历史成绩</button>
+    </div>
+    <div id="queryOut"></div>
+  </div>
+
+  <!-- 跑步 -->
+  <div class="card">
+    <h2>跑步提交</h2>
+    <div class="row">
+      <select id="runMode">
+        <option value="1">计分跑（走打卡点）</option>
+        <option value="6">自由跑</option>
+      </select>
+      <label style="font-size:13px">距离 <input id="runDist" type="number" value="2000" min="1000" step="100" style="width:90px"> 米</label>
+      <label style="font-size:13px">耗时 <input id="runTime" type="number" value="720" min="60" step="10" style="width:90px"> 秒</label>
+      <label style="font-size:13px" title="开启后模拟真人跑步：配速起伏、心率等生理字段、步频分桶波动"><input id="runRealism" type="checkbox" checked> 拟真</label>
+      <span class="speed" id="speedHint"></span>
+      <button id="btnRun" onclick="doRun()">开始跑步</button>
+    </div>
+    <div class="hint">距离和时长共同决定配速，配速必须落在学校规则区间内（点「跑步规则」可查本校区的区间与步频要求）。不合适的组合会在提交前被拦下，并提示时长应落在多少秒之间 —— 不会真的占用一次提交。请勿频繁提交。</div>
+  </div>
+
+  <!-- 日志 -->
+  <div class="card">
+    <h2>执行日志 <span id="jobState"></span></h2>
+    <div id="log">等待操作…</div>
+  </div>
+</div>
+
+<script>
+let pollTimer = null;
+let failStreak = 0;
+
+// 页面内提示与确认弹窗（替代原生 alert/confirm，避免被浏览器拦截后点击无反应）
+let _toastTimer = null;
+function showMessage(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+function showConfirm(msg){
+  return new Promise(resolve=>{
+    const m = document.getElementById('modal');
+    document.getElementById('modalText').textContent = msg;
+    m.classList.add('show');
+    const ok = document.getElementById('modalOk');
+    const cancel = document.getElementById('modalCancel');
+    const done = v => { m.classList.remove('show'); ok.onclick = cancel.onclick = null; resolve(v); };
+    ok.onclick = ()=>done(true);
+    cancel.onclick = ()=>done(false);
+  });
+}
+
+async function refreshStatus(){
+  const b = document.getElementById('loginBadge');
+  try{
+    const s = await (await fetch('/api/status')).json();
+    if(s.logged_in){ b.className='badge ok'; b.textContent='已登录 uid='+s.uid; }
+    else { b.className='badge off'; b.textContent='未登录'; }
+  }catch(e){
+    b.className='badge off'; b.textContent='服务未响应';
+  }
+}
+
+// 「当前生效」和「输入框里待提交」是两件事：登录成功前，输入框的内容
+// 一个字节都不会发出去。所以这里单独把生效值显示出来，避免用户以为
+// 改了输入框就换了设备。
+function maskDevice(id){
+  return id.length > 12 ? id.slice(0,8)+'…'+id.slice(-4) : id;
+}
+async function refreshDeviceId(){
+  const el = document.getElementById('deviceHint');
+  try{
+    const r = await (await fetch('/api/device-id')).json();
+    if(!r.ok){ el.textContent = '当前生效：读取失败'; return; }
+    if(!r.current){
+      el.textContent = '当前生效：未设置（首次运行会自动生成一个并写入 config.ini）';
+      el.removeAttribute('title');
+      return;
+    }
+    const warn = r.valid ? '' : '　⚠ 格式异常：' + esc(r.reason || '');
+    el.innerHTML = `当前生效：<code>${esc(maskDevice(r.current))}</code>（${esc(r.source)}）${warn}`;
+    el.title = r.current;  // 完整值放在悬停提示里，方便核对
+  }catch(e){
+    el.textContent = '当前生效：服务未响应';
+  }
+}
+
+// 只填进输入框，不落盘 —— 与 device_id_tool.py 默认「只生成不写入」同一套
+// 判断：指纹一旦写错/写乱，账号就被判成换了设备，而这比不填更难发现。
+async function genDeviceId(){
+  const r = await post('/api/device-id/new', {});
+  if(!r || !r.device_id) return;
+  deviceId.value = r.device_id;
+  showMessage('已填入新指纹，登录成功后才会生效');
+}
+
+// 结果里混着服务端返回的文本（错误消息、点位名等），插入 innerHTML 前一律转义，
+// 否则一条带尖括号的报错就能把页面结构冲掉。
+function esc(v){
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function post(url, body){
+  try{
+    const r = await (await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})})).json();
+    // started=false 表示「已有任务在跑」，此时该继续轮询；ok=false 表示请求被拒，
+    // 没有任务可等，返回 null 让调用方不要启轮询，否则会空转到天荒地老。
+    if((r.started === false || r.ok === false) && r.message){ showMessage(r.message); }
+    return r.ok === false ? null : r;
+  }catch(e){
+    showMessage('请求失败：'+(e && e.message ? e.message : e));
+    return null;
+  }
+}
+
+function startPolling(){
+  if(pollTimer) return;
+  failStreak = 0;
+  pollTimer = setInterval(async ()=>{
+    let j;
+    try{
+      j = await (await fetch('/api/job')).json();
+    }catch(e){
+      // 服务端重启或网络抖动时 setInterval 会持续抛错，页面上看不出任何变化，
+      // 用户会以为任务还在跑。连续 3 次失败就停表并明确告知。
+      if(++failStreak >= 3){ stopPolling(); showMessage('与服务端失去连接，已停止刷新'); }
+      return;
+    }
+    failStreak = 0;
+    const logEl = document.getElementById('log');
+    logEl.textContent = j.log.length ? j.log.join('\n') : '等待操作…';
+    logEl.scrollTop = logEl.scrollHeight;
+    const st = document.getElementById('jobState');
+    if(j.running){
+      st.textContent = '';
+      const spin = document.createElement('span');
+      spin.className = 'spin';
+      spin.style.cssText = 'border-color:var(--brand);border-top-color:transparent';
+      st.append(spin, ` ${j.name} 执行中…`);
+      document.getElementById('btnRun').disabled = true; document.getElementById('btnLogin').disabled = true;
+    } else {
+      st.textContent = '';
+      document.getElementById('btnRun').disabled = false; document.getElementById('btnLogin').disabled = false;
+      if(j.done && j.result){
+        renderResult(j.name, j.result);
+        stopPolling();
+        refreshStatus();
+        refreshDeviceId();  // 登录成功后生效值才会变，必须跟着刷新
+      }
+    }
+  }, 700);
+}
+
+function stopPolling(){
+  if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+}
+
+function kvTable(obj){
+  if(!obj) return '';
+  return '<div class="kv">'+Object.entries(obj).map(([k,v])=>`<div><b>${esc(k)}</b>${esc(v ?? '-')}</div>`).join('')+'</div>';
+}
+
+function renderResult(name, res){
+  const out = document.getElementById('queryOut');
+  if(!res || res.ok === undefined) return;
+  if(!res.ok){ out.innerHTML = `<div class="hint err">❌ ${esc(name)}失败：${esc(res.message||'')}</div>`; return; }
+  if(name === '历史记录'){
+    const rows = (res.data||[]).map(r=>`<tr><td>${esc(r.rrid)}</td><td>${esc(r.里程)}</td><td>${esc(r.耗时)}</td><td>${esc(r.配速)}</td><td class="${r.状态==='达标'?'ok':'err'}">${esc(r.状态)}</td><td class="dim">${esc(r.原因||'')}</td></tr>`).join('');
+    out.innerHTML = `<table><tr><th>rrid</th><th>里程</th><th>耗时</th><th>配速</th><th>状态</th><th>原因</th></tr>${rows}</table>`;
+  } else if(name === '跑步提交'){
+    // 判定文案可能缺失，先转成字符串再判断，避免 undefined.includes 抛错
+    const verdict = String(res.data.判定 || '');
+    out.innerHTML = `<div class="hint ${verdict.includes('达标')&&!verdict.includes('未')?'ok':'err'}">
+      🏁 rrid=${esc(res.data.rrid)} · ${esc(res.data.里程)} / ${esc(res.data.耗时)} · 配速 ${esc(res.data.配速 || '-')} · 判定：<b>${esc(verdict)}</b></div>` + kvTable(res.data);
+  } else if(name === '学期进度'){
+    const pct = parseFloat(String(res.data['完成度']||'0').replace('%','')) || 0;
+    out.innerHTML = `<div style="margin:10px 0 6px;font-size:13px">完成度 <b class="${pct>=100?'ok':''}">${esc(res.data['完成度'])}</b></div>
+      <div style="background:#eef1f5;border-radius:999px;height:14px;overflow:hidden">
+        <div style="width:${Math.min(pct,100)}%;height:100%;background:${pct>=100?'var(--ok)':'var(--brand)'};transition:.4s"></div></div>` + kvTable(res.data);
+  } else {
+    out.innerHTML = kvTable(res.data);
+  }
+}
+
+async function doLogin(){
+  // 口令不 trim：首尾空格可能是密码本身的一部分
+  const body = {username:username.value.trim(), password:password.value, device_id:deviceId.value.trim()};
+  if(!body.username || !body.password){ showMessage('请填写账号和密码'); return; }
+  saveAccount(body.username, body.device_id);
+  document.getElementById('queryOut').innerHTML = '';
+  if(await post('/api/login', body)) startPolling();
+}
+async function action(a){
+  document.getElementById('queryOut').innerHTML = '';
+  if(await post('/api/action',{action:a})) startPolling();
+}
+async function doRun(){
+  const sec = +runTime.value || 0;
+  const dur = sec >= 60 ? `${Math.floor(sec/60)} 分 ${sec%60} 秒` : `${sec} 秒`;
+  if(!(await showConfirm(`确认提交跑步记录？预计耗时 ${dur}，期间页面需保持打开。该操作会向服务器上传一次有效成绩，且无法撤回。`))) return;
+  document.getElementById('queryOut').innerHTML = '';
+  if(await post('/api/run',{mode:+runMode.value, distance:+runDist.value, time_sec:+runTime.value, realism:runRealism.checked})) startPolling();
+}
+async function doLogout(){
+  if(!(await showConfirm('确认退出登录？将清除本地缓存的凭据。'))) return;
+  await post('/api/logout'); refreshStatus();
+  document.getElementById('log').textContent = '已退出登录';
+}
+
+// 记住账号与设备指纹（仅存浏览器 localStorage，且仅限本机）
+// 注意：密码绝不入 localStorage —— 任何同源脚本或 XSS 都能读出它，
+// 登录成功后服务端已下发 token，无需保留明文口令。
+const ACCOUNT_KEY = 'zjwh_account';
+function saveAccount(u, dev){
+  try{ localStorage.setItem(ACCOUNT_KEY, JSON.stringify({username:u, deviceId:dev||''})); }catch(e){}
+}
+function loadAccount(){
+  try{
+    const raw = localStorage.getItem(ACCOUNT_KEY);
+    if(!raw) return;
+    const a = JSON.parse(raw);
+    // 清理历史版本遗留的明文口令
+    if(a.password){ delete a.password; saveAccount(a.username, a.deviceId); }
+    if(a.username) username.value = a.username;
+    if(a.deviceId) deviceId.value = a.deviceId;
+  }catch(e){}
+}
+
+// 配速实时换算。
+// 格式必须和后端 core/pace.py 的 format_pace 完全一致（8′54″/km）：
+// 用户在输入框里预览到的数字，就是他之后在 App 记录里看到的那个字符串。
+// 改动其中一边时，另一边与 test_pace_display.py 要同步。
+function fmtPace(secPerKm){
+  if(!(secPerKm > 0)) return '-';
+  const total = Math.round(secPerKm);
+  const m = Math.floor(total / 60), s = total % 60;
+  return m + '′' + String(s).padStart(2,'0') + '″';
+}
+function updateSpeed(){
+  const d = +runDist.value, t = +runTime.value;
+  speedHint.textContent = (d>0&&t>0) ? '配速 '+fmtPace(t/(d/1000))+'/km' : '';
+}
+runDist.addEventListener('input', updateSpeed);
+runTime.addEventListener('input', updateSpeed);
+updateSpeed();
+loadAccount();
+refreshStatus();
+refreshDeviceId();
+</script>
+
+<div id="toast"></div>
+<div id="modal">
+  <div class="modal-box">
+    <p id="modalText"></p>
+    <div class="btns">
+      <button class="ghost" id="modalCancel">取消</button>
+      <button id="modalOk">确定</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

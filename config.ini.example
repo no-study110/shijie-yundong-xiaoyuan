@@ -1,0 +1,62 @@
+# 运动世界校园 7.3.92 协议套件 - 配置示例
+# 复制此文件为 config.ini 后修改（config.ini 已加入 .gitignore）
+
+[server]
+# 服务端网关主机（支持自建中转代理或第三方镜像）
+host_run = https://run.gxapp.iydsj.com
+host_discovery = https://discovery.gxapp.iydsj.com
+host_datapoint = https://datapoint.gxapp.iydsj.com
+host_partner = https://partner.iydsj.com
+
+[signature]
+# 请求签名加盐（官方值，跨版本通用，无需修改）
+sign_salt = 2slhe02lsfiwowlcixisla_sls-_slaor
+
+[device]
+# 设备指纹默认配置（标准 ARM64 Android 13 特征）
+app_version = 7.3.92
+physic_pixel = 1080x2400
+logic_pixel = 393x873
+is_root = 0
+os_type = 0
+cpu_model = arm64-v8a
+device_name = Android Device
+# DeviceId 留空则每次自动生成随机 UUID（32位16进制）
+device_id =
+os_version = 13
+user_agent = okhttp/4.12.0
+
+[session]
+# 凭据持久化路径（相对于项目根目录）
+session_file = .session.json
+
+[webui]
+# Web UI 监听配置
+host = 127.0.0.1
+port = 9999
+
+[proxy]
+# HTTP/HTTPS/SOCKS5 代理（留空则直连）
+# 格式: http://host:port 或 socks5://user:pass@host:port
+proxy_url =
+
+[captcha]
+# 滑块验证码依赖 Node.js + playwright，三项都留空则自动探测。
+# 探测顺序：环境变量 → 本段配置 → npm root -g → node 安装布局 → 常见位置。
+# 自动探测失败时，报错里会列出「已经尝试过哪些路径」，照着填即可。
+# Node.js 可执行文件路径
+node_executable =
+# Node.js 模块搜索路径，多个目录用 ; 分隔（Linux/macOS 用 :）
+node_path =
+# 装了 playwright 的 node_modules 目录；填了它就不用管上面两项
+playwright_path =
+
+[realism]
+# 拟真增强默认开关（True 启用配速波动/生理字段/分桶抖动，False 纯均分）
+enabled = True
+# 物理时间模拟（True 模拟跑前准备+跑步时长，False 仅保留网络延迟）
+simulate_physical_time = True
+
+[compliance]
+# 围栏与打卡点自检容差（米）
+checkpoint_tolerance_m = 15.0
