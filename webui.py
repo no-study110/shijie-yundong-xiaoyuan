@@ -16,7 +16,8 @@ from flask import Flask, Response, request
 from sport_client import SportClient792
 from core.session import load_session, save_session
 from config_loader import (get_session_file_path, get_webui_config, get_realism_defaults,
-                           get_device_id_from_file, normalize_device_id, validate_device_id)
+                           get_device_id_from_file, normalize_device_id, validate_device_id,
+                           get_data_dir)
 from login.captcha import detect_node_executable, detect_node_paths
 from core.pace import record_pace_text
 from history.models import parse_history_records, record_verdict, detail_for
@@ -35,7 +36,8 @@ os.environ.setdefault("NODE_EXECUTABLE", detect_node_executable())
 os.environ.setdefault("NODE_PATH", detect_node_paths())
 
 SESSION_FILE = get_session_file_path()
-CONFIG_FILE = os.path.join(BASE_DIR, ".webui_config.json")
+# 运行期数据（本机 device_id / 代理）跟着数据目录走：Android 上源码目录只读
+CONFIG_FILE = str(get_data_dir() / ".webui_config.json")
 
 app = Flask(__name__)
 
@@ -390,6 +392,43 @@ def api_set_config():
     _config["proxy"] = proxy
     _save_config()
     return {"ok": True, "message": "代理配置已保存（重启任务后生效）", "proxy": proxy or ""}
+
+
+@app.post("/api/session/import")
+def api_session_import():
+    """导入已有登录态（粘贴 ``.session.json`` 内容）。
+
+    存在理由：登录要过极验滑块，而滑块求解依赖 Node + Playwright 驱动 Chromium ——
+    Android 上没有等价环境。因此手机版走「电脑登录一次，把凭据搬过来」这条路，
+    而不是在手机上重写验证码破解。
+
+    只接受 token/uid/unid 三个字段，密码永远不落盘；导入前校验类型，
+    避免把一段随便粘贴的文字写成「已登录」。
+    """
+    body = request.get_json(force=True, silent=True) or {}
+    raw = body.get("text", body)
+    if isinstance(raw, str):
+        try:
+            data = json.loads(raw.strip())
+        except (ValueError, TypeError):
+            return {"ok": False, "message": "粘贴的内容不是合法 JSON（应形如 {\"token\":\"…\",\"uid\":\"…\"}）"}
+    else:
+        data = raw
+    if not isinstance(data, dict):
+        return {"ok": False, "message": "登录态应为 JSON 对象"}
+    token = str(data.get("token") or "").strip()
+    uid = data.get("uid")
+    unid = data.get("unid")
+    if not token:
+        return {"ok": False, "message": "缺少 token"}
+    if not uid:
+        return {"ok": False, "message": "缺少 uid"}
+    try:
+        save_session(SESSION_FILE, token, uid, unid)
+    except (ValueError, IOError) as exc:
+        return {"ok": False, "message": f"写入失败：{exc}"}
+    _log(f"登录态已导入: uid={uid}" + (f" unid={unid}" if unid else ""))
+    return {"ok": True, "uid": str(uid), "unid": "" if unid is None else str(unid)}
 
 
 if __name__ == "__main__":

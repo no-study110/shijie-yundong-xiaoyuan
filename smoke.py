@@ -43,7 +43,9 @@ from typing import Dict, List, Optional, Sequence, Tuple
 ROOT = Path(__file__).resolve().parent
 
 # 递归扫描时跳过的目录：构建产物与虚拟环境里的 .py 不属于本仓库源码
-SKIP_DIRS = {"__pycache__", "build", "dist", "venv", "env", ".git", ".idea", ".vscode"}
+SKIP_DIRS = {"__pycache__", "build", "dist", "venv", "env", ".git", ".idea", ".vscode",
+             # android/ 下是打包时自动同步的源码副本，检查它等于把同一份代码数两遍
+             "android"}
 
 # 需要第三方包才能导入的模块：仍然参与语法检查，但不参与导入检查。
 # webui.py 依赖 flask，而核心协议刻意保持零第三方依赖，缺 flask 不该判定失败。

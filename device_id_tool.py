@@ -27,10 +27,11 @@ import uuid
 from pathlib import Path
 
 import config_loader
-from config_loader import normalize_device_id, set_device_id, validate_device_id
+from config_loader import normalize_device_id, set_device_id, validate_device_id, get_data_dir
 
 BASE_DIR = Path(__file__).parent.absolute()
-WEBUI_CONFIG = BASE_DIR / ".webui_config.json"
+# 本机选择（device_id / 代理）属于运行期数据，Android 上必须落在应用私有目录
+WEBUI_CONFIG = get_data_dir() / ".webui_config.json"
 
 
 def generate(count=1):

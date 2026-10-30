@@ -45,3 +45,13 @@ htmlcov/
 
 # 本地风控账本与落盘的风控规则（运行时产物，不入库）
 state/
+
+# Android 构建产物与本地工具链路径（源码经 android/sync_python.py 自动同步，不入库）
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/python/
+android/.idea/
+*.apk
+*.aab

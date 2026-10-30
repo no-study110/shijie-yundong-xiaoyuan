@@ -20,8 +20,11 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# 账本默认落在项目根的 state/ 下，与代码同目录便于随项目迁移
-DEFAULT_PATH = Path(__file__).resolve().parent.parent / "state" / "run_ledger.json"
+# 账本默认落在数据目录的 state/ 下（桌面端=项目根，Android=应用私有目录），
+# 与代码同目录便于随项目迁移
+from config_loader import get_data_dir
+
+DEFAULT_PATH = get_data_dir() / "state" / "run_ledger.json"
 
 SCHEMA_VERSION = 1
 MAX_RUNS = 200

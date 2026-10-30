@@ -75,6 +75,10 @@
     </div>
     <div class="hint">已登录时无需重复登录；换账号请先退出登录。10121 报错时填手机抓包里的 DeviceId。</div>
     <div class="hint" id="deviceHint">当前生效：读取中…</div>
+    <div class="row" style="margin-top:8px">
+      <input id="sessionJson" placeholder='手机端用：粘贴 .session.json 内容 {"token":"…","uid":"…"}' style="flex:1;min-width:240px">
+      <button class="ghost" onclick="importSession()" title="绕过极验滑块：在电脑登录一次，把凭据搬过来">导入登录态</button>
+    </div>
   </div>
 
   <!-- 查询 -->
@@ -182,6 +186,18 @@ async function genDeviceId(){
   if(!r || !r.device_id) return;
   deviceId.value = r.device_id;
   showMessage('已填入新指纹，登录成功后才会生效');
+}
+
+// 手机端无法过极验滑块：把电脑上登录得到的 .session.json 内容粘进来即可，
+// 之后跑步/查询都正常，只是换账号要回电脑重新登录一次。
+async function importSession(){
+  const text = (sessionJson.value || '').trim();
+  if(!text){ showMessage('先粘贴 .session.json 的内容'); return; }
+  const r = await post('/api/session/import', {text: text});
+  if(!r || r.ok === false) return;
+  sessionJson.value = '';
+  showMessage(`登录态已导入：uid=${r.uid}${r.unid ? ' · unid=' + r.unid : ''}`);
+  refreshStatus();
 }
 
 // 结果里混着服务端返回的文本（错误消息、点位名等），插入 innerHTML 前一律转义，

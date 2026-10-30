@@ -8,7 +8,11 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 
 _BASE_DIR = Path(__file__).parent.absolute()
-_CONFIG_PATH = _BASE_DIR / "config.ini"
+# 可写数据目录：桌面端就是源码目录（行为不变）；打包成 Android APK 后代码位于
+# 只读的 assets 里，config.ini / .session.json / state/ 必须落到应用私有目录，
+# 由启动脚本设置 ZJWH_DATA_DIR 指过去。
+_DATA_DIR = Path(os.environ.get("ZJWH_DATA_DIR") or _BASE_DIR).absolute()
+_CONFIG_PATH = _DATA_DIR / "config.ini"
 _config: Optional[configparser.ConfigParser] = None
 
 
@@ -78,15 +82,25 @@ def _load_config() -> configparser.ConfigParser:
 
 
 def get_base_dir() -> Path:
-    """返回项目根目录（7.3.92 文件夹）"""
+    """返回项目根目录（7.3.92 文件夹）——代码与只读资源所在处"""
     return _BASE_DIR
+
+
+def get_data_dir() -> Path:
+    """返回可写数据目录（config.ini / .session.json / state/ / .webui_config.json）。
+
+    默认与代码同目录；设置环境变量 ``ZJWH_DATA_DIR`` 后指向该目录，
+    Android 打包版用它把运行期文件放进应用私有空间。
+    """
+    _DATA_DIR.mkdir(parents=True, exist_ok=True)
+    return _DATA_DIR
 
 
 def get_session_file_path() -> str:
     """返回会话文件绝对路径"""
     cfg = _load_config()
     relative = cfg.get("session", "session_file", fallback=".session.json")
-    return str(_BASE_DIR / relative)
+    return str(get_data_dir() / relative)
 
 
 def get_server_config() -> Dict[str, str]:

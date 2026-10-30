@@ -1,0 +1,58 @@
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+android {
+    namespace 'com.zjwh.runner'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.zjwh.runner"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        // Chaquopy 的解释器是原生库，必须显式声明 ABI。
+        // arm64-v8a 覆盖真机，x86_64 便于模拟器调试。
+        ndk {
+            abiFilters 'arm64-v8a', 'x86_64'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // 首版直接用 debug 签名：让用户拿到就能装，不必先配密钥库。
+            // 真要上架再补 signingConfigs，见 android/README.md。
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        // 版本必须与构建机上的 Python 主次版本一致，否则 pip/字节码编译会失败。
+        // 构建脚本会把 BUILD_PYTHON 指到本机的 3.13 解释器。
+        version = "3.13"
+        def buildPy = System.getenv("BUILD_PYTHON")
+        if (buildPy) {
+            buildPython buildPy
+        }
+
+        pip {
+            // 项目本身只用标准库；网页控制台需要 Flask（含 jinja2/werkzeug 自动解析）
+            install "flask==3.0.3"
+        }
+    }
+}
+
+dependencies {
+    // 不引入 AndroidX：界面就是一个 WebView，用系统 Activity 足够，包体更小
+}

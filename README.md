@@ -24,6 +24,7 @@
 - ✅ **灵活配置**：INI 配置文件 + 环境变量 + 代码默认值三级回退
 - ✅ **命令行工具**：支持批量测试、自定义设备指纹、跳过物理时间
 - ✅ **Web 控制台**：本地网页界面，可视化操作
+- ✅ **手机 App**：可打包成 Android APK（Python 后端 + WebView，与桌面端同一套代码）
 - ✅ **可移植性强**：统一配置系统，无硬编码值，支持多环境部署
 
 ## 快速开始
@@ -253,7 +254,7 @@ python cli.py --run
 ├── config.ini.example       # 配置模板（复制后修改）
 ├── smoke.py                 # 提交前冒烟检查（静态/契约/导入/测试/配置）
 ├── check.cmd / check.sh     # 冒烟一键入口
-├── test_*.py                # 离线单元测试（338 个用例）
+├── test_*.py                # 离线单元测试（343 个用例）
 ├── build.py / build.spec    # PyInstaller 打包
 ├── core/
 │   ├── config.py            # 把 config_loader 的取值固化为模块常量
@@ -285,6 +286,11 @@ python cli.py --run
 ├── account/ · history/ · ads/ · telemetry/
 │   ├── client.py            # 档案 / 历史 / 广告 / 埋点
 │   └── models.py            # 各自的数据模型
+├── android/                 # 打包成手机 App（Chaquopy + WebView，见 android/README.md）
+│   ├── build_apk.py         # 一键构建：同步源码 → 调 Gradle → 输出 dist/*.apk
+│   ├── sync_python.py       # 把业务源码同步进 APK 的 python 源目录（增量）
+│   └── app/                 # Android 工程（MainActivity 起 Python，再加载网页控制台）
+├── android_entry.py         # Android 启动入口：设数据目录 → 起 Flask（桌面端不用）
 └── examples/proxy_example.py # 代理配置示例
 ```
 

@@ -44,7 +44,7 @@ Windows 还可以直接双击 `check.cmd`，Linux/macOS 用 `./check.sh`，参�
   OK   57 个模块全部可导入（跳过需第三方依赖的 webui）
 
 [4/5] 单元测试
-  OK   338 个用例全部通过（3.2s；Flask / Node 相关用例在干净环境自动跳过）
+  OK   343 个用例全部通过（4.6s；Flask / Node 相关用例在干净环境自动跳过）
 
 [5/5] 配置健康
   OK   config.ini 可解析，device_id 已生成（9 个段）

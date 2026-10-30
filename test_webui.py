@@ -194,5 +194,78 @@ class WebuiConfigTests(unittest.TestCase):
         self.assertEqual(cfg["port"], 8080)
 
 
+class SessionImportTests(unittest.TestCase):
+    """手机端的登录态导入：粘贴 .session.json 内容即可登录。
+
+    存在理由：Android 上没有 Node + Playwright，过不了极验滑块。所以手机版
+    不在本地解验证码，而是接收电脑上登录得到的 token/uid/unid。
+    """
+
+    def setUp(self):
+        if not HAS_FLASK:
+            self.skipTest(SKIP_REASON)
+        import tempfile, os
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = os.path.join(self.tmp.name, ".session.json")
+        self._patch = patch.object(webui, "SESSION_FILE", self.path)
+        self._patch.start()
+        self.c = webui.app.test_client()
+
+    def tearDown(self):
+        if hasattr(self, "_patch"):
+            self._patch.stop()
+            self.tmp.cleanup()
+
+    def test_import_writes_only_token_uid_unid(self):
+        import json
+        r = self.c.post("/api/session/import", json={
+            "text": json.dumps({"token": "T" * 24, "uid": 12752192, "unid": 61401,
+                                "password": "不该落盘"})}).get_json()
+        self.assertTrue(r["ok"])
+        self.assertEqual(r["uid"], "12752192")
+        with open(self.path, encoding="utf-8") as fp:
+            saved = json.load(fp)
+        self.assertEqual(saved["token"], "T" * 24)
+        self.assertEqual(saved["unid"], "61401")
+        self.assertNotIn("password", saved)
+
+    def test_import_accepts_object_body(self):
+        r = self.c.post("/api/session/import",
+                        json={"token": "T" * 24, "uid": "42"}).get_json()
+        self.assertTrue(r["ok"])
+        self.assertEqual(r["unid"], "")
+
+    def test_rejects_bad_payload(self):
+        import json
+        for body in ({"text": "{not json"}, {"text": "[1,2]"},
+                     {"text": json.dumps({"uid": 1})},
+                     {"text": json.dumps({"token": "T" * 24})}):
+            with self.subTest(body=body):
+                r = self.c.post("/api/session/import", json=body).get_json()
+                self.assertFalse(r["ok"])
+                self.assertTrue(r["message"])
+
+
+class DataDirTests(unittest.TestCase):
+    """ZJWH_DATA_DIR 让可写数据跟着环境走 —— Android 上源码目录是只读的。"""
+
+    def test_override_moves_config_and_session(self):
+        import os
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(os.environ, {"ZJWH_DATA_DIR": tmp}):
+                import importlib
+                mod = importlib.reload(config_loader)
+                try:
+                    self.assertEqual(mod.get_data_dir().as_posix(), tmp.replace("\\", "/"))
+                    self.assertTrue(mod.get_session_file_path().startswith(tmp))
+                finally:
+                    os.environ.pop("ZJWH_DATA_DIR", None)
+                    importlib.reload(config_loader)
+
+    def test_default_is_project_dir(self):
+        self.assertEqual(config_loader.get_data_dir(), config_loader.get_base_dir())
+
+
 if __name__ == "__main__":
     unittest.main()
