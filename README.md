@@ -8,6 +8,9 @@
   均来自对「运动世界校园」**Android 客户端 7.3.92 版本** 的抓包与逆向分析；
   单位口径（如 `speed` 字段 = 配速 × 1000、规则 `speedTop/speedBottom` = 分/公里）
   由真实接口返回数据实测校准。
+- **参考资料**：反编译与接口分析参考了开源仓库
+  [Inverx/com.zjwh.android_wh_physicalfitness](https://github.com/Inverx/com.zjwh.android_wh_physicalfitness)
+  （「运动世界校园」`com.zjwh.android_wh_physicalfitness` 的逆向资料），感谢原作者的贡献。
 - **独立重实现**：本仓库为协议学习性质的独立重写，**不包含任何官方 APK 的代码、
   资源或二进制**；与「运动世界校园」官方及开发商无任何关联。
 - **用途限制**：仅供网络协议学习与安全研究。请遵守所在学校规定与相关法律法规，
